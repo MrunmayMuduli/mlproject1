@@ -1,17 +1,26 @@
 import os
-import json
+import streamlit as st
 from openai import OpenAI
 
-# Initialize OpenAI client
-client = OpenAI(api_key="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")
+# ============================================================
+# PAGE CONFIG
+# ============================================================
+st.set_page_config(
+    page_title="CareerPath AI",
+    page_icon="🚀",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # ============================================================
 # GOVERNANCE & DISCLAIMERS
 # ============================================================
 DISCLAIMER = """
-⚠️ DISCLAIMER - CareerPath AI
-This tool provides general career guidance based on AI analysis. It is NOT a guarantee of employment or success.
-Consider these limitations:
+⚠️ **DISCLAIMER - CareerPath AI**
+
+This tool provides general career guidance based on AI analysis. It is **NOT** a guarantee of employment or success.
+
+**Important Limitations:**
 - May contain biases based on training data
 - Regional and industry variations not fully captured
 - Personal circumstances vary greatly
@@ -46,16 +55,27 @@ SKILL_MAPPING = {
         "required_soft_skills": ["Communication", "Leadership", "Negotiation", "Storytelling"],
         "common_certifications": ["Reforge Product Management", "Prodify"],
         "typical_transition_roles": ["Senior PM", "Strategy Consultant", "Business Analyst"]
+    },
+    "mechanical engineer": {
+        "required_hard_skills": ["Python", "Statistics", "Machine Learning", "Data Analysis", "CAD/Simulation"],
+        "required_soft_skills": ["Problem Solving", "Collaboration", "Communication"],
+        "common_certifications": ["Google Data Analytics", "AWS ML", "Andrew Ng's ML Course"],
+        "typical_transition_roles": ["Data Engineer", "ML Engineer", "Data Scientist"]
     }
 }
+
+# Initialize OpenAI client
+@st.cache_resource
+def init_openai():
+    return OpenAI(api_key="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")
 
 # ============================================================
 # CAREER ROADMAP GENERATOR
 # ============================================================
 def generate_career_roadmap(current_role, skills, experience_years, target_role):
-    """
-    Generates personalized career roadmap using LLM + rule engine
-    """
+    """Generate personalized career roadmap using LLM + rule engine"""
+    
+    client = init_openai()
     
     # Get skill recommendations from rule engine
     target_lower = target_role.lower()
@@ -102,15 +122,15 @@ def generate_career_roadmap(current_role, skills, experience_years, target_role)
         return response.choices[0].message.content
     
     except Exception as e:
-        return f"Error generating roadmap: {str(e)}"
+        return f"❌ Error generating roadmap: {str(e)}"
 
 # ============================================================
 # ACTION PLAN GENERATOR
 # ============================================================
 def generate_action_plan(current_role, target_role, roadmap):
-    """
-    Generates concise 3-6 step action plan for next 6 months
-    """
+    """Generate concise 3-6 step action plan for next 6 months"""
+    
+    client = init_openai()
     
     user_prompt = f"""
     Based on this career roadmap:
@@ -138,58 +158,95 @@ def generate_action_plan(current_role, target_role, roadmap):
         return response.choices[0].message.content
     
     except Exception as e:
-        return f"Error generating action plan: {str(e)}"
+        return f"❌ Error generating action plan: {str(e)}"
 
 # ============================================================
-# MAIN APP (CLI VERSION - can be converted to Streamlit)
+# STREAMLIT UI
 # ============================================================
-def main():
-    print("\n" + "="*60)
-    print("🚀 CAREERPATH AI - Personalized Career Advice Generator")
-    print("="*60)
-    print(DISCLAIMER)
-    print("="*60 + "\n")
+st.title("🚀 CareerPath AI")
+st.markdown("### Personalized Career Advice Generator")
+
+# Sidebar - Disclaimer
+with st.sidebar:
+    st.warning(DISCLAIMER)
+    st.markdown("---")
+    st.info("💡 **Tip:** This tool combines LLM analysis with career skill matching rules for personalized guidance.")
+
+# Main content
+col1, col2 = st.columns([1, 1])
+
+with col1:
+    st.subheader("📋 Your Information")
+    current_role = st.text_input("Current Role", placeholder="e.g., Mechanical Engineer, Data Analyst")
+    experience_years = st.slider("Years of Experience", 0, 50, 5)
+    skills = st.text_area("Your Top Skills (comma-separated)", placeholder="e.g., Python, CAD, Problem Solving")
+
+with col2:
+    st.subheader("🎯 Your Goal")
+    target_role = st.selectbox(
+        "Target Role",
+        ["Data Scientist", "ML Engineer", "Software Engineer", "Product Manager", "Other"],
+        help="Or type your own target role"
+    )
+    if target_role == "Other":
+        target_role = st.text_input("Enter your target role:")
     
-    # Collect user input
-    current_role = input("📍 What is your current role? (e.g., 'Mechanical Engineer', 'Data Analyst'): ").strip()
-    experience_years = input("📅 Years of experience: ").strip()
-    skills = input("🛠️  Your top 3-5 skills (comma-separated): ").strip()
-    target_role = input("🎯 What's your target role? (e.g., 'Data Scientist', 'ML Engineer'): ").strip()
+    timeline_preference = st.radio("Timeline Preference", ["Realistic (24 months)", "Aggressive (12 months)", "Casual (3 years)"])
+
+# Generate button
+if st.button("🔮 Generate My Career Roadmap", use_container_width=True, type="primary"):
+    if not current_role or not skills or not target_role:
+        st.error("❌ Please fill in all required fields")
+    else:
+        with st.spinner("⏳ Generating your personalized career roadmap..."):
+            roadmap = generate_career_roadmap(current_role, skills, experience_years, target_role)
+        
+        # Display roadmap
+        st.subheader("📊 Your Personalized Career Roadmap")
+        st.markdown(roadmap)
+        
+        # Generate action plan
+        with st.spinner("⏳ Generating your 6-month action plan..."):
+            action_plan = generate_action_plan(current_role, target_role, roadmap)
+        
+        st.subheader("✅ Your 6-Month Action Plan")
+        st.markdown(action_plan)
+        
+        # Governance note
+        st.info("""
+        **📍 How This Was Generated:**
+        - LLM Analysis: Groq llama3-8b-8192 model
+        - Rule Engine: Skill matching against industry benchmarks
+        - Data Source: Career industry best practices
+        
+        **✓ For Best Results:**
+        - Discuss with mentors in your target field
+        - Network with people in target roles
+        - Validate timeline with actual job market
+        - Adapt based on personal circumstances
+        """)
+
+# Example section
+st.markdown("---")
+with st.expander("📚 Example: Mechanical Engineer → Data Scientist"):
+    st.markdown("""
+    **Example Career Transition:**
+    - **From:** Mechanical Engineer (5 years)
+    - **To:** Data Scientist at FAANG
+    - **Skills:** CAD, MATLAB, Problem Solving, Physics
     
-    print("\n⏳ Generating your personalized career roadmap...\n")
+    This is a real career path many engineers take! You already have:
+    - ✅ Strong analytical thinking
+    - ✅ Project management experience
+    - ✅ Technical foundation
     
-    # Generate roadmap
-    roadmap = generate_career_roadmap(current_role, skills, experience_years, target_role)
-    
-    print("\n" + "="*60)
-    print("📊 YOUR PERSONALIZED CAREER ROADMAP")
-    print("="*60)
-    print(roadmap)
-    
-    # Generate action plan
-    print("\n⏳ Generating your 6-month action plan...\n")
-    action_plan = generate_action_plan(current_role, target_role, roadmap)
-    
-    print("\n" + "="*60)
-    print("✅ YOUR 6-MONTH ACTION PLAN")
-    print("="*60)
-    print(action_plan)
-    
-    print("\n" + "="*60)
-    print("💡 GOVERNANCE NOTE")
-    print("="*60)
-    print("""
-    This roadmap was generated using:
-    - LLM-based analysis (Groq llama3-8b-8192)
-    - Rule-based skill matching engine
-    - Career industry data
-    
-    For best results:
-    ✓ Discuss with mentors in your target field
-    ✓ Network with people in target roles
-    ✓ Validate timeline with actual job market
-    ✓ Adapt based on personal circumstances
+    You need to build:
+    - 🔨 Python programming skills
+    - 📊 Statistics and probability
+    - 🤖 Machine learning fundamentals
+    - 📈 Data visualization and SQL
     """)
 
-if __name__ == "__main__":
-    main()
+# Footer
+st.markdown("---")
+st.caption("🛡️ CareerPath AI - Using advanced LLM + Rule-Based Career Guidance | Disclaimers apply - see sidebar for details")
