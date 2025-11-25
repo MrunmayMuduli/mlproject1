@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Streamlit App",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": [
+        "run",
+        "${workspaceFolder}/demo/assignmentguard.py"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "env": {
+        "STREAMLIT_DEBUG": "true",
+        "BROWSER": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+      }
+    }
+  ]
+}

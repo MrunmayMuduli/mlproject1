@@ -1,4 +1,2 @@
-pandas
-numpy
-seaborn
--e .
+groq==0.36.0
+streamlit==1.41.1
